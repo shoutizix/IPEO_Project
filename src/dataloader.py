@@ -23,8 +23,10 @@ class LandCoverData(Dataset):
       'Bed rocks': 7
     }
     
-    colormap = ListedColormap(["green", "saddlebrown", "darkseagreen" ,"steelblue",
-                               "snow", "tan", "lightgrey" ,"dimgrey",])
+    colormap_names = ["green", "saddlebrown", "darkseagreen" ,"steelblue",
+                      "snow", "tan", "lightgrey" ,"dimgrey",]
+    
+    colormap = ListedColormap(colormap_names)
     
     input_transform =  T.Compose([
         T.Resize((200, 200)),
