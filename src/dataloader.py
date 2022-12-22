@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 
 import csv
 from PIL import Image
+from matplotlib.colors import ListedColormap
 import torchvision.transforms as T
 import torch
 
@@ -21,6 +22,9 @@ class LandCoverData(Dataset):
       'Loose rocks, scree': 6,
       'Bed rocks': 7
     }
+    
+    colormap = ListedColormap(["green", "saddlebrown", "darkseagreen" ,"steelblue",
+                               "snow", "tan", "lightgrey" ,"dimgrey",])
     
     input_transform =  T.Compose([
         T.Resize((200, 200)),
