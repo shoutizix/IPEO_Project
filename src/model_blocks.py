@@ -11,15 +11,19 @@ from torchvision.transforms import CenterCrop
 from torch.nn import functional as F
 
 class Block(Module):
-	def __init__(self, inChannels, outChannels):
-		super().__init__()
-		# store the convolution and RELU layers
-		self.conv1 = Conv2d(inChannels, outChannels, 3)
-		self.batchNorm = BatchNorm2d(outChannels)
-		self.relu = ReLU()
-	def forward(self, x):
-		# apply CONV => RELU => CONV block to the inputs and return it
-		return self.relu(self.batchNorm(self.conv1(x)))
+    def __init__(self, inChannels, outChannels):
+        super().__init__()
+        # store the convolution and RELU layers
+        self.conv1 = Conv2d(inChannels, outChannels, 3, padding=1)
+        self.batchNorm1 = BatchNorm2d(outChannels)
+        self.relu1 = ReLU()
+        self.conv2 = Conv2d(outChannels, outChannels, 3, padding=1)
+        self.batchNorm2 = BatchNorm2d(outChannels)
+        self.relu2 = ReLU()
+    def forward(self, x):
+        # apply CONV => RELU => CONV block to the inputs and return it
+        x = self.relu1(self.batchNorm1(self.conv1(x)))
+        return self.relu2(self.batchNorm2(self.conv2(x)))
     
 class Encoder(Module):
 	def __init__(self, channels=(3,64,128,256,512,1024)):
@@ -28,7 +32,7 @@ class Encoder(Module):
 		self.encoderStep = ModuleList(
 			[Block(channels[i], channels[i + 1])
 			 	for i in range(len(channels) - 1)])
-		self.pool = MaxPool2d(kernel_size=3, stride=2)
+		self.pool = MaxPool2d(2)
 	
 	def forward(self, x):
 		# initialize an empty list to store the intermediate outputs
