@@ -6,34 +6,33 @@ import torch
 from src.model_blocks import Block, Encoder, Decoder
 
 class UNet(Module):
-    def __init__(self, encChannels=(3,64,128,256,512,1024),
-                       decChannels=(1024, 512, 256, 128, 64),
-                       nbClasses=1, 
-                       retainDim=True,
-                       outSize=(200,  200)):
-        
+    def __init__(self, nbClasses=1,
+                       nChannels=3):
         super().__init__()
-        # initialize the encoder and decoder
-        self.encoder = Encoder(encChannels)
-        self.decoder = Decoder(decChannels)
-        # initialize the regression head and store the class variables
-        self.head = Conv2d(decChannels[-1], nbClasses, 1)
-        self.retainDim = retainDim
-        self.outSize = outSize
+        self.nChannels = nChannels
+        self.nbClasses = nbClasses
+
+        self.inc = (Block(nChannels, 64))
+        self.encoder1 = (Encoder(64, 128))
+        self.encoder2 = (Encoder(128, 256))
+        self.encoder3 = (Encoder(256, 512))
+        self.encoder4 = (Encoder(512, 1024))
+        self.decoder1 = (Decoder(1024, 512))
+        self.decoder2 = (Decoder(512, 256))
+        self.decoder3 = (Decoder(256, 128))
+        self.decoder4 = (Decoder(128, 64))
+        self.last = Conv2d(64, nbClasses, kernel_size=1)
 
     def forward(self, x):
-        # grab the features from the encoder
-        encFeatures = self.encoder(x)
-        # pass the encoder features through decoder making sure that
-        # their dimensions are suited for concatenation
-        decFeatures = self.decoder(encFeatures[::-1][0],
-          encFeatures[::-1][1:])
-        # pass the decoder features through the regression head to
-        # obtain the segmentation mask
-        mask = self.head(decFeatures)
-        # check to see if we are retaining the original output
-        # dimensions and if so, then resize the output to match them
-        if self.retainDim:
-            mask = F.interpolate(mask, self.outSize)
-        # return the segmentation map
-        return mask
+        x1 = self.inc(x)
+        x2 = self.encoder1(x1)
+        x3 = self.encoder2(x2)
+        x4 = self.encoder3(x3)
+        x5 = self.encoder4(x4)
+        x = self.decoder1(x5, x4)
+        x = self.decoder2(x, x3)
+        x = self.decoder3(x, x2)
+        x = self.decoder4(x, x1)
+        
+        logits = self.last(x)
+        return logits

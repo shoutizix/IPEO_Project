@@ -1,5 +1,6 @@
 import torch
 
+from torch.nn import Sequential
 from torch.nn import ConvTranspose2d
 from torch.nn import Conv2d
 from torch.nn import MaxPool2d
@@ -14,73 +15,45 @@ class Block(Module):
     def __init__(self, inChannels, outChannels):
         super().__init__()
         # store the convolution and RELU layers
-        self.conv1 = Conv2d(inChannels, outChannels, 3, padding=1)
-        self.batchNorm1 = BatchNorm2d(outChannels)
-        self.relu1 = ReLU()
-        self.conv2 = Conv2d(outChannels, outChannels, 3, padding=1)
-        self.batchNorm2 = BatchNorm2d(outChannels)
-        self.relu2 = ReLU()
+        self.double_conv = Sequential(
+            Conv2d(inChannels, outChannels, kernel_size=3, padding=1, bias=False),
+            BatchNorm2d(outChannels),
+            ReLU(inplace=True),
+            Conv2d(outChannels, outChannels, kernel_size=3, padding=1, bias=False),
+            BatchNorm2d(outChannels),
+            ReLU(inplace=True)
+        )
     def forward(self, x):
-        # apply CONV => RELU => CONV block to the inputs and return it
-        x = self.relu1(self.batchNorm1(self.conv1(x)))
-        return self.relu2(self.batchNorm2(self.conv2(x)))
+        # apply CONV => BN => ReLU x2 blocks to the inputs and return it
+        return self.double_conv(x)
     
 class Encoder(Module):
-	def __init__(self, channels=(3,64,128,256,512,1024)):
-		super().__init__()
-		# store the encoder blocks and maxpooling layer
-		self.encoderStep = ModuleList(
-			[Block(channels[i], channels[i + 1])
-			 	for i in range(len(channels) - 1)])
-		self.pool = MaxPool2d(2)
-	
-	def forward(self, x):
-		# initialize an empty list to store the intermediate outputs
-		blockOutputs = []
-		# loop through the encoder blocks
-		for step in self.encoderStep:
-			# pass the inputs through the current encoder block, store
-			# the outputs, and then apply maxpooling on the output
-			x = step(x)
-			blockOutputs.append(x)
-			x = self.pool(x)
-		# return the list containing the intermediate outputs
-		return blockOutputs
+    def __init__(self, inChannels, outChannels):
+        super().__init__()
+        self.maxpool_conv = Sequential(
+            MaxPool2d(2),
+            Block(inChannels, outChannels)
+        )
+
+    def forward(self, x):
+        return self.maxpool_conv(x)
     
 class Decoder(Module):
-	def __init__(self, channels=(1024, 512, 256, 128, 64)):
-		super().__init__()
-		# initialize the number of channels, upsampler blocks, and
-		# decoder blocks
-		self.channels = channels
-		self.fusingConvs = ModuleList(
-			[ConvTranspose2d(channels[i], channels[i + 1], 2, 2)
-			 	for i in range(len(channels) - 1)])
-		self.decoderStep = ModuleList(
-			[Block(channels[i], channels[i + 1])
-			 	for i in range(len(channels) - 1)])
-	
-	def forward(self, x, encFeatures):
-		# loop through the number of channels
-		for i in range(len(self.channels) - 1):
-			# pass the inputs through the upsampler blocks
-			x = self.fusingConvs[i](x)
-			# crop the current features from the encoder blocks,
-			# concatenate them with the current upsampled features,
-			# and pass the concatenated output through the current
-			# decoder block
+    def __init__(self, inChannels, outChannels):
+        super().__init__()
+        self.up = ConvTranspose2d(inChannels, outChannels, kernel_size=2, stride=2)
+        self.conv = Block(inChannels, outChannels)
 
-			# STACKING
-			encFeat = self.crop(encFeatures[i], x)
-			x = torch.cat([x, encFeat], dim=1)
+    def forward(self, x1, x2):
+        x1 = self.up(x1)
+        # input is CHW
+        diffY = x2.size()[2] - x1.size()[2]
+        diffX = x2.size()[3] - x1.size()[3]
 
-			x = self.decoderStep[i](x)
-		# return the final decoder output
-		return x
-	def crop(self, encFeatures, x):
-		# grab the dimensions of the inputs, and crop the encoder
-		# features to match the dimensions
-		(_, _, H, W) = x.shape
-		encFeatures = CenterCrop([H, W])(encFeatures)
-		# return the cropped features
-		return encFeatures
+        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
+                        diffY // 2, diffY - diffY // 2])
+        # if you have padding issues, see
+        # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
+        # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
+        x = torch.cat([x2, x1], dim=1)
+        return self.conv(x)
