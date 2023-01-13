@@ -35,8 +35,8 @@ class LandCoverData(Dataset):
     std_inv = 1 / (std + 1e-7)
     unnormalize = T.Normalize(-mean * std_inv, std_inv)
     
-    meanAugmented=torch.tensor([0.44071006, 0.49269303, 0.420523])
-    stdAugmented=torch.tensor([0.21948738, 0.20629372, 0.18073172])
+    meanAugmented=torch.tensor([0.41019084, 0.46676111, 0.41055677])
+    stdAugmented=torch.tensor([0.22964193, 0.21852429, 0.18757638])
     normalizeAugmented = T.Normalize(meanAugmented, stdAugmented)
     std_invAug = 1 / (stdAugmented + 1e-7)
     unnormalizeAugmented = T.Normalize(-meanAugmented * std_invAug, std_invAug)
