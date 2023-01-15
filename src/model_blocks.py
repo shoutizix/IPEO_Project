@@ -14,7 +14,7 @@ from torch.nn import functional as F
 class Block(Module):
     def __init__(self, inChannels, outChannels):
         super().__init__()
-        # store the convolution and RELU layers
+        # store the convolutions, BN and RELU layers
         self.double_conv = Sequential(
             Conv2d(inChannels, outChannels, kernel_size=3, padding=1, bias=False),
             BatchNorm2d(outChannels),
@@ -24,7 +24,6 @@ class Block(Module):
             ReLU(inplace=True)
         )
     def forward(self, x):
-        # apply CONV => BN => ReLU x2 blocks to the inputs and return it
         return self.double_conv(x)
     
 class Encoder(Module):
@@ -46,7 +45,7 @@ class Decoder(Module):
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        # input is CHW
+        # input is N-C-H-W
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
 

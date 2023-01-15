@@ -1,18 +1,15 @@
-# From https://github.com/Mr-TalhaIlyas/Loss-Functions-Package-Tensorflow-Keras-PyTorch
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-#PyTorch
+
+#########################################################
 #Dice Loss
 ALPHA = 0.5
 BETA = 0.5
-#Try also
-#ALPHA = 0.3
-#BETA = 0.7
-
 GAMMA = 2
-
+# From https://github.com/Mr-TalhaIlyas/Loss-Functions-Package-Tensorflow-Keras-PyTorch
 class FocalTverskyLoss(torch.nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(FocalTverskyLoss, self).__init__()
@@ -39,8 +36,8 @@ class FocalTverskyLoss(torch.nn.Module):
                        
         return FocalTversky
 
+#########################################################
 # from https://stackoverflow.com/questions/65125670/implementing-multiclass-dice-loss-function
-    
 def dice_coef_8cat(y_true, y_pred, smooth=1e-7):
     '''
     Dice coefficient for 8 categories.
@@ -58,8 +55,8 @@ def dice_coef_8cat_loss(y_true, y_pred):
     '''
     return 1 - dice_coef_8cat(y_true, y_pred)
 
+#########################################################
 # from https://www.kaggle.com/rishabhiitbhu/unet-with-resnet34-encoder-pytorch
-
 def dice_loss(input, target):
     input = torch.sigmoid(input)
     smooth = 1.0
@@ -68,8 +65,8 @@ def dice_loss(input, target):
     intersection = (iflat * tflat).sum()
     return ((2.0 * intersection + smooth) / (iflat.sum() + tflat.sum() + smooth))
 
+#########################################################
 # from https://www.kaggle.com/rishabhiitbhu/unet-with-resnet34-encoder-pytorch
-
 class FocalLoss(torch.nn.Module):
     def __init__(self, gamma):
         super().__init__()
@@ -86,8 +83,8 @@ class FocalLoss(torch.nn.Module):
         loss = (invprobs * self.gamma).exp() * loss
         return loss.mean()
     
+#########################################################
 # from https://www.kaggle.com/rishabhiitbhu/unet-with-resnet34-encoder-pytorch
-
 class MixedLoss(torch.nn.Module):
     def __init__(self, alpha, gamma):
         super().__init__()
@@ -98,10 +95,11 @@ class MixedLoss(torch.nn.Module):
         loss = self.alpha*self.focal(input, target) - torch.log(dice_loss(input, target))
         return loss.mean()
 
+#########################################################
 #https://github.com/willzhengwang/aerial_image_classification/blob/main/losses.py
 class FocalLoss2(nn.Module):
     def __init__(self, gamma=0, alpha=None, size_average=True):
-        super(FocalLoss, self).__init__()
+        super().__init__()
         self.gamma = gamma
         self.alpha = alpha
         if isinstance(alpha,(float,int)): self.alpha = torch.Tensor([alpha,1-alpha])
@@ -130,6 +128,7 @@ class FocalLoss2(nn.Module):
         if self.size_average: return loss.mean()
         else: return loss.sum()
 
+#########################################################
 class mIoULoss(torch.nn.Module):
     def __init__(self, weight=None, size_average=True, n_classes=2):
         super(mIoULoss, self).__init__()
