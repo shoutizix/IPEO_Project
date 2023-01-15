@@ -1,6 +1,6 @@
 # IPEO-Project: Semantic segmentation of alpine land cover.
 
-Repository link: https://github.com/shoutizix/IPEO_Project/edit/main/README.md
+Repository link: https://github.com/shoutizix/IPEO_Project
 
 # Setup
 
